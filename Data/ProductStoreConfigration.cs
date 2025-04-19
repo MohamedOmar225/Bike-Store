@@ -10,7 +10,7 @@ namespace bike_store_2.Data
         {
 
 
-            builder.HasKey(a => new { a.product_id , a.store_id });
+            builder.HasKey(a => new { a.ProductId , a.StoreId });
 
             builder.Property(a => a.Quanttity)
                 .HasColumnType("INT");

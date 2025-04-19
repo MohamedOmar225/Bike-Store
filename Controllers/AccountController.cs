@@ -1,5 +1,6 @@
 ﻿using bike_store_2.Data;
 using bike_store_2.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +12,7 @@ namespace bike_store_2.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    //[Authorize(Roles ="Admin")]
     public class AccountController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _usermanger;
@@ -31,12 +33,12 @@ namespace bike_store_2.Controllers
                 ApplicationUser applicationUser = new ApplicationUser();
 
                 applicationUser.UserName = userDTO.UserName;
-                applicationUser.Email = userDTO.Email;
+                applicationUser.Email = userDTO.Email;                
 
                 IdentityResult result = await _usermanger.CreateAsync(applicationUser, userDTO.Password);
 
                 if (result.Succeeded)
-                {
+                {                    
                     return Ok("User Account Added.");
                 }
                 else

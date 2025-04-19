@@ -15,8 +15,11 @@ namespace WebApplication1
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddControllers();
-           
+
             builder.Services.AddEndpointsApiExplorer();
+
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+               .AddEntityFrameworkStores<AppDbContext>();
 
             #region AddSwaggerGen
             builder.Services.AddSwaggerGen(c =>
@@ -32,17 +35,17 @@ namespace WebApplication1
                 });
                 c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
                 {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
+                    new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                    {
+                        Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                        {
+                            Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    new string[] {}
                 }
-            },
-            new string[] {}
-        }
     });
             });
             //end config Swager
@@ -69,25 +72,17 @@ namespace WebApplication1
                 };
             });
 
-
-
-
-
+            
             //builder.Services.AddSwaggerGen();
 
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("MM"));
             });
-            
-
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-                .AddEntityFrameworkStores<AppDbContext>();
-
-                     
+          
 
             var app = builder.Build();
-            
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -95,12 +90,41 @@ namespace WebApplication1
             }
 
             //app.UseHttpsRedirection();                       
-            app.UseAuthentication();  
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
 
             app.Run();
+
+
+            //***************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         }
     }
 }

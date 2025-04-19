@@ -10,11 +10,18 @@ namespace bike_store_2.Data
         {
 
 
-            builder.HasKey(a => new { a.Item_id, a.Order_id });
+            builder.HasKey(a => new { a.OrderId, a.ProductId });
+           
 
-            builder.Property(t => t.Total)
-                .HasComputedColumnSql("[Quantity] * [List_price] - [Discount]");
-                
+            builder.Property(t => t.Listprice)
+                .HasPrecision(10, 2);
+
+            builder.Property(t => t.Quantity)
+                .HasPrecision(10, 2);
+
+            builder.Property(t => t.Discount)
+                .HasPrecision(10, 2);
+            
 
             builder.ToTable("OrderItems");
         }

@@ -6,13 +6,14 @@ namespace bike_store_2.Entities
     public class Store
     {
         [Key]
-        public int store_id { get; set; }
+        public int StoreId { get; set; }
         [Required]
-        public string store_name { get; set; } = null!;
+        public string StoreName { get; set; } = null!;
         public string? city { get; set; }
         public string? street { get; set; }
         public string? Phone { get; set; }
         public string? Email { get; set; }
+        public bool IsExist { get; set; } = true;
         [JsonIgnore]
         public ICollection<Employee> Employees { get; set; } = new List<Employee>();
         [JsonIgnore]
