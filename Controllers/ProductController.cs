@@ -2,11 +2,9 @@
 using bike_store_2.DTO;
 using bike_store_2.Entities;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Net;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+
 
 namespace bike_store_2.Controllers
 {
@@ -16,7 +14,7 @@ namespace bike_store_2.Controllers
     public class ProductController : ControllerBase
     {
         private readonly AppDbContext appDbContext;
-        public ProductController(AppDbContext  appDbContext)
+        public ProductController(AppDbContext appDbContext)
         {
             this.appDbContext = appDbContext;
         }
@@ -24,50 +22,82 @@ namespace bike_store_2.Controllers
 
         // create new product
         [HttpPost]
-        public IActionResult CreateProduct([FromBody] Product product)
+        public IActionResult CreateProductWithStores([FromBody] AddProductToStore productdto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState); 
-            }
             try
             {
-                var checkCategoryId = appDbContext.Categories.Find(product.cate_id);
-                var checkBrandId = appDbContext.Brands.Find(product.brand_id);
-                if(checkCategoryId != null && checkBrandId != null)
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var category = appDbContext.Categories.FirstOrDefault(c => c.CategoryId == productdto.CategoryId && c.IsExsit);
+                var brand = appDbContext.Brands.FirstOrDefault(b => b.BrandId == productdto.BrandId && b.IsExist);
+
+                if (category != null && brand != null)
                 {
-                    appDbContext.Products.Add(product);
+                    var Product = new Product
+                    {
+                        ProductName = productdto.ProductName,
+                        ListPrice = productdto.ListPrice,
+                        ModelYear = productdto.ModelYear,
+                        CategoryId = productdto.CategoryId,
+                        BrandId = productdto.BrandId,
+                        IsExisit = true
+                    };
+
+                    appDbContext.Products.Add(Product);
                     appDbContext.SaveChanges();
-                    return Ok(product);
+
+                    // اضافه المنتج في المحل
+                    foreach (var product in productdto.stoerQuantities)
+                    {
+                        var stores = appDbContext.Stores.FirstOrDefault(s => s.StoreId == product.StoreId && s.IsExist);
+                        if (stores != null)
+                        {
+                            var productStore = new ProductStore
+                            {
+                                ProductId = Product.ProductId,
+                                StoreId = product.StoreId,
+                                Quanttity = product.Quantity
+                            };
+                            appDbContext.ProductStores.Add(productStore);
+                        }
+                    }
+                    appDbContext.SaveChanges();
+                    return Ok(new
+                    {
+                        Massage = "Product created and assigned to stores successfully.",
+                        Product = productdto
+                    });
                 }
-                return BadRequest("Check category id or brand id.");               
+                return BadRequest("Invalid Category or Brand");
+            }                    
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-            catch 
-            {                
-                return StatusCode(500, "An error occurred while creating the product.");
-            }            
         }
 
 
 
         // return data
         [HttpGet]
-        public IActionResult Get()
+        [Route("All Products")]
+        public IActionResult GetAllProducts()
         {
             try
-            {                
-                var products = appDbContext.Products.ToList();                    
-                if (products == null)
+            {
+                //var products = appDbContext.Products.ToList();
+                var products = appDbContext.Products.Where(p => p.IsExisit).ToList();
+                if (products == null || !products.Any())
                 {
                     return NotFound("No products found.");
-                }                
+                }
                 return Ok(products);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"An error occurred while fetching the products: {ex.Message}");
             }
-
         }
 
 
@@ -78,54 +108,50 @@ namespace bike_store_2.Controllers
             try
             {
                 var product = appDbContext.Products
-                    .Include(c => c.Category).Include(b => b.Brands)
-                    .FirstOrDefault(p => p.product_id == id);                
+                    .Include(c => c.Category).Include(s => s.Stores).Include(b => b.Brands).Include(oi => oi.OrderItems)
+                    .FirstOrDefault(p => p.ProductId == id && p.IsExisit);
                 if (product != null)
-                {                                                        
+                {
                     return Ok(product);
                 }
                 else
                 {
-                    return NotFound();
+                    return NotFound($"No products found with this id.");
                 }
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-            
         }
 
 
+        // get by name
+        [HttpGet("{name}")]
+        public IActionResult GetProductByName([FromRoute] string name)
+        {            
+            try
+            {
+                var product = appDbContext.Products
+                    .Include(c => c.Category).Include(s => s.Stores).Include(b => b.Brands).Include(oi => oi.OrderItems)
+                    .FirstOrDefault(p => p.ProductName == name && p.IsExisit);
+                if (product != null)
+                {
+                    return Ok(product);
+                }
+                else
+                {
+                    return NotFound($"No products found with this name.");
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
 
-        //public IActionResult GetProductNameListpriceMoelyearandCategoryNameByproductId([FromRoute] int id)
-        //{
-        //    try
-        //    {
-        //        var product = appDbContext.Products
-        //            .Include(c => c.Category).Include(b => b.Brands)
-        //            .FirstOrDefault(p => p.product_id == id);
-        //        GetProductsandCategoryNameDTO getProduct = new GetProductsandCategoryNameDTO();
-        //        if (product != null)
-        //        {
-        //            getProduct.Name = product.product_name;
-        //            getProduct.Price = product.list_price;
-        //            getProduct.model_year = product.model_year;
-        //            getProduct.category_name = product.Category.cate_name;
-        //            return Ok(getProduct);
-        //        }
-        //        else
-        //        {
-        //            return NotFound();
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, $"Internal server error: {ex.Message}");
-        //    }
 
-        //}
-
+       
 
         // update data
         [HttpPut("{id:int}")]
@@ -134,23 +160,33 @@ namespace bike_store_2.Controllers
             try
             {
                 if (!ModelState.IsValid)
-                {
                     return BadRequest("Invalid data provided.");
-                }
+
+                var category = appDbContext.Categories.FirstOrDefault(c => c.CategoryId == product.CategoryId && c.IsExsit);
+                var brand = appDbContext.Brands.FirstOrDefault(b => b.BrandId == product.BrandId && b.IsExist);
+
+                if (brand == null && category == null)
+                    return BadRequest("Invalid Category or Brand");
+
                 var old_product = appDbContext.Products
-                    .Include(c => c.Category).Include(b => b.Brands)
-                    .FirstOrDefault(p => p.product_id == id);
+                    .Include(c => c.Category)
+                    .FirstOrDefault(p => p.ProductId == id);
                 if (old_product != null)
                 {
-                    old_product.product_name = product.product_name;
-                    old_product.model_year = product.model_year;
-                    old_product.list_price = product.list_price;
-                    old_product.brand_id = product.brand_id;
-                    old_product.cate_id = product.cate_id;
+                    old_product.ProductName = product.ProductName;
+                    old_product.ModelYear = product.ModelYear;
+                    old_product.ListPrice = product.ListPrice;
+                    old_product.BrandId = product.BrandId;
+                    old_product.CategoryId = product.CategoryId;
+                    old_product.IsExisit = product.IsExisit;
                     appDbContext.SaveChanges();
-                    return Ok(old_product);
+                    return Ok(new
+                    {
+                        Massage = "Product updated successfully.",
+                        Product = old_product
+                    });
                 }
-                return NotFound();
+                return NotFound($"No products found with this id.");
             }
             catch (Exception ex)
             {
@@ -161,23 +197,106 @@ namespace bike_store_2.Controllers
 
         // Delete
         [HttpDelete("{id:int}")]
-        public IActionResult DeleteByID(int id)
+        public IActionResult DeleteProductByID(int id)
         {
             try
             {
-                var product = appDbContext.Products.FirstOrDefault(p => p.product_id == id);
+                var product = appDbContext.Products.FirstOrDefault(p => p.ProductId == id && p.IsExisit);
                 if (product != null)
-                {
-                    appDbContext.Products.Remove(product);
+                {                        
+                    product.IsExisit = false;                    
+                    var deletefromstore = appDbContext.ProductStores.Where(p => p.ProductId == id).ToList();
+                    if (deletefromstore != null)
+                    {
+                        appDbContext.RemoveRange(deletefromstore);
+                    }
+
                     appDbContext.SaveChanges();
-                    return Ok("Product deleted successfully.");
+                    return Ok("Product deleted from all stores successfully.");
                 }
-                return NotFound("Product not found.");               
+                return NotFound($"No products found with this id.");
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+
+
+
+
+
+
+
+
+
+
+        //**********************************************************************
+
+        //[HttpPost]
+        //public IActionResult CreateProduct([FromBody] Product product , int StoreId , int quantity)
+        //{
+        //    try
+        //    {
+        //        if (!ModelState.IsValid)
+        //        {
+        //            return BadRequest(ModelState);
+        //        }
+        //        var checkCategoryId = appDbContext.Categories.Where(x => x.CategoryId == product.CategoryId && x.IsExsit);
+        //        var checkBrandId = appDbContext.Brands.Where(x => x.BrandId == product.BrandId && x.IsExist);
+
+        //        if (checkCategoryId != null && checkBrandId != null)
+        //        {
+
+        //            var checkStore = appDbContext.Stores.Where(s => s.StoreId == StoreId);
+        //            if (checkStore != null)
+        //            {
+        //                appDbContext.Products.Add(product);
+        //                appDbContext.SaveChanges();
+
+        //                var newproduct = new ProductStore
+        //                {
+        //                    StoreId = StoreId,
+        //                    ProductId = product.ProductId,
+        //                    Quanttity = quantity,
+        //                };
+        //                appDbContext.ProductStores.Add(newproduct);
+        //                appDbContext.SaveChanges();
+
+        //                return Ok(new
+        //                {
+        //                    massage = "Product created and added into store successfully.",
+        //                    product = product,
+        //                });
+        //            }
+        //            return NotFound("Store does not exist.");
+
+        //        }
+        //        return BadRequest("Check if the category or brand are existing or not.");
+        //    }
+        //    catch
+        //    {
+        //        return StatusCode(500, "An error occurred while creating the product.");
+        //    }
+        //}
+
+
+
+
+
+
+
+
+
+
+
+
+
+       
+
+
+
+
     }
 }

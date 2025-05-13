@@ -6,10 +6,12 @@ namespace bike_store_2.Entities
     public class Brand
     {
         [Key]
-        public int brand_id { get; set; }
+        public int BrandId { get; set; }
         [Required]
-        public string brand_name { get; set; } = null!;
+        public string BrandName { get; set; } = null!;
+        public bool IsExist { get; set; } = true;
         [JsonIgnore]
         public ICollection<Product> Products { get; set; } = new List<Product>();
+        
     }
 }

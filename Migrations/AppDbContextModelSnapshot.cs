@@ -157,15 +157,15 @@ namespace bikestore2.Migrations
 
             modelBuilder.Entity("ProductStore", b =>
                 {
-                    b.Property<int>("Productsproduct_id")
+                    b.Property<int>("ProductsProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Storesstore_id")
+                    b.Property<int>("StoresStoreId")
                         .HasColumnType("int");
 
-                    b.HasKey("Productsproduct_id", "Storesstore_id");
+                    b.HasKey("ProductsProductId", "StoresStoreId");
 
-                    b.HasIndex("Storesstore_id");
+                    b.HasIndex("StoresStoreId");
 
                     b.ToTable("ProductStore");
                 });
@@ -237,60 +237,64 @@ namespace bikestore2.Migrations
 
             modelBuilder.Entity("bike_store_2.Entities.Brand", b =>
                 {
-                    b.Property<int>("brand_id")
+                    b.Property<int>("BrandId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("brand_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BrandId"));
 
-                    b.Property<string>("brand_name")
+                    b.Property<string>("BrandName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("brand_id");
+                    b.Property<bool>("IsExist")
+                        .HasColumnType("bit");
+
+                    b.HasKey("BrandId");
 
                     b.ToTable("Brands");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Category", b =>
                 {
-                    b.Property<int>("cate_id")
+                    b.Property<int>("CategoryId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("cate_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryId"));
 
-                    b.Property<string>("cate_name")
+                    b.Property<string>("CategoryName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("cate_id");
+                    b.Property<bool>("IsExsit")
+                        .HasColumnType("bit");
+
+                    b.HasKey("CategoryId");
 
                     b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Customer", b =>
                 {
-                    b.Property<int>("customer_Id")
+                    b.Property<int>("CustomerId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("customer_Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerId"));
 
                     b.Property<string>("City")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Email")
+                    b.Property<string>("CustomerEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CustumerName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("First_Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Last_Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
@@ -298,52 +302,61 @@ namespace bikestore2.Migrations
                     b.Property<string>("Street")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("customer_Id");
+                    b.HasKey("CustomerId");
 
                     b.ToTable("Customers");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Employee", b =>
                 {
-                    b.Property<int>("Emp_id")
+                    b.Property<int>("EmployeeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Emp_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmployeeId"));
 
-                    b.Property<string>("Emp_Email")
+                    b.Property<string>("EmployeeEmail")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Emp_name")
+                    b.Property<string>("EmployeeName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Emp_phone")
+                    b.Property<string>("EmployeePhone")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("Emp_salary")
+                    b.Property<decimal>("EmployeeSalary")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("Store_id")
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("StoreId")
                         .HasColumnType("int");
 
-                    b.HasKey("Emp_id");
+                    b.HasKey("EmployeeId");
 
-                    b.HasIndex("Store_id");
+                    b.HasIndex("StoreId");
 
                     b.ToTable("Employees");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Order", b =>
                 {
-                    b.Property<int>("order_id")
+                    b.Property<int>("OrderId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("order_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
 
-                    b.Property<int>("Emp_id")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsExist")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
@@ -351,147 +364,133 @@ namespace bikestore2.Migrations
                     b.Property<DateTime>("ShippedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Store_id")
+                    b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.Property<int>("customer_id")
-                        .HasColumnType("int");
+                    b.Property<decimal?>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
 
-                    b.HasKey("order_id");
+                    b.HasKey("OrderId");
 
-                    b.HasIndex("Emp_id");
+                    b.HasIndex("CustomerId");
 
-                    b.HasIndex("Store_id");
+                    b.HasIndex("EmployeeId");
 
-                    b.HasIndex("customer_id");
+                    b.HasIndex("StoreId");
 
                     b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.OrderItem", b =>
                 {
-                    b.Property<int>("Item_id")
+                    b.Property<int>("OrderId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Order_id")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Discount")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
 
-                    b.Property<decimal>("List_price")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<decimal>("Listprice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
 
-                    b.Property<int>("Ordersorder_id")
+                    b.Property<int>("Quantity")
+                        .HasPrecision(10, 2)
                         .HasColumnType("int");
 
-                    b.Property<int?>("Quantity")
-                        .HasColumnType("int");
+                    b.HasKey("OrderId", "ProductId");
 
-                    b.Property<decimal>("Total")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("decimal(18,2)")
-                        .HasComputedColumnSql("[Quantity] * [List_price] - [Discount]");
-
-                    b.Property<int>("product_ID")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("product_id")
-                        .HasColumnType("int");
-
-                    b.HasKey("Item_id", "Order_id");
-
-                    b.HasIndex("Ordersorder_id");
-
-                    b.HasIndex("product_id");
+                    b.HasIndex("ProductId");
 
                     b.ToTable("OrderItems", (string)null);
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Product", b =>
                 {
-                    b.Property<int>("product_id")
+                    b.Property<int>("ProductId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("product_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductId"));
 
-                    b.Property<int?>("brand_id")
+                    b.Property<int?>("BrandId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("cate_id")
+                    b.Property<int?>("CategoryId")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("list_price")
+                    b.Property<bool>("IsExisit")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("ListPrice")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("model_year")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("product_name")
+                    b.Property<string>("ModelYear")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("product_id");
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.HasIndex("brand_id");
+                    b.HasKey("ProductId");
 
-                    b.HasIndex("cate_id");
+                    b.HasIndex("BrandId");
+
+                    b.HasIndex("CategoryId");
 
                     b.ToTable("Products");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.ProductStore", b =>
                 {
-                    b.Property<int>("product_id")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("store_id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Productsproduct_id")
+                    b.Property<int>("StoreId")
                         .HasColumnType("int");
 
                     b.Property<int>("Quanttity")
                         .HasColumnType("INT");
 
-                    b.Property<int>("Storesstore_id")
-                        .HasColumnType("int");
+                    b.HasKey("ProductId", "StoreId");
 
-                    b.HasKey("product_id", "store_id");
-
-                    b.HasIndex("Productsproduct_id");
-
-                    b.HasIndex("Storesstore_id");
+                    b.HasIndex("StoreId");
 
                     b.ToTable("ProductStores", (string)null);
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Store", b =>
                 {
-                    b.Property<int>("store_id")
+                    b.Property<int>("StoreId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("store_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreId"));
 
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsExist")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StoreName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("city")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("store_name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("street")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("store_id");
+                    b.HasKey("StoreId");
 
                     b.ToTable("Stores");
                 });
@@ -551,13 +550,13 @@ namespace bikestore2.Migrations
                 {
                     b.HasOne("bike_store_2.Entities.Product", null)
                         .WithMany()
-                        .HasForeignKey("Productsproduct_id")
+                        .HasForeignKey("ProductsProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("bike_store_2.Entities.Store", null)
                         .WithMany()
-                        .HasForeignKey("Storesstore_id")
+                        .HasForeignKey("StoresStoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -566,28 +565,28 @@ namespace bikestore2.Migrations
                 {
                     b.HasOne("bike_store_2.Entities.Store", "Store")
                         .WithMany("Employees")
-                        .HasForeignKey("Store_id");
+                        .HasForeignKey("StoreId");
 
                     b.Navigation("Store");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Order", b =>
                 {
+                    b.HasOne("bike_store_2.Entities.Customer", "Customer")
+                        .WithMany("Orders")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("bike_store_2.Entities.Employee", "Employee")
                         .WithMany("Orders")
-                        .HasForeignKey("Emp_id")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("bike_store_2.Entities.Store", "Store")
                         .WithMany("Orders")
-                        .HasForeignKey("Store_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("bike_store_2.Entities.Customer", "Customer")
-                        .WithMany("Orders")
-                        .HasForeignKey("customer_id")
+                        .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -602,26 +601,30 @@ namespace bikestore2.Migrations
                 {
                     b.HasOne("bike_store_2.Entities.Order", "Orders")
                         .WithMany("OrderItems")
-                        .HasForeignKey("Ordersorder_id")
+                        .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("bike_store_2.Entities.Product", null)
+                    b.HasOne("bike_store_2.Entities.Product", "Products")
                         .WithMany("OrderItems")
-                        .HasForeignKey("product_id");
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Orders");
+
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Product", b =>
                 {
                     b.HasOne("bike_store_2.Entities.Brand", "Brands")
                         .WithMany("Products")
-                        .HasForeignKey("brand_id");
+                        .HasForeignKey("BrandId");
 
                     b.HasOne("bike_store_2.Entities.Category", "Category")
                         .WithMany("Products")
-                        .HasForeignKey("cate_id");
+                        .HasForeignKey("CategoryId");
 
                     b.Navigation("Brands");
 
@@ -632,13 +635,13 @@ namespace bikestore2.Migrations
                 {
                     b.HasOne("bike_store_2.Entities.Product", "Products")
                         .WithMany()
-                        .HasForeignKey("Productsproduct_id")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("bike_store_2.Entities.Store", "Stores")
                         .WithMany()
-                        .HasForeignKey("Storesstore_id")
+                        .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

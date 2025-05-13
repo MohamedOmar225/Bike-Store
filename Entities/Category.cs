@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace bike_store_2.Entities
@@ -6,10 +7,11 @@ namespace bike_store_2.Entities
     public class Category
     {
         [Key]
-        public int cate_id { get; set; }
+        public int CategoryId { get; set; }
         [Required]
-        public string cate_name { get; set; } = null!;
+        public string CategoryName { get; set; } = null!;        
+        public bool IsExsit { get; set; } = true;
         [JsonIgnore]
-        public ICollection<Product> Products { get; set; } = new List<Product>();
+        public ICollection<Product> Products { get; set; } = new List<Product>();                
     }
 }

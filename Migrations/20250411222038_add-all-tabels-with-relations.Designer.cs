@@ -12,8 +12,8 @@ using bike_store_2.Data;
 namespace bikestore2.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250325164237_add_Authentication_Authorization")]
-    partial class addAuthenticationAuthorization
+    [Migration("20250411222038_add-all-tabels-with-relations")]
+    partial class addalltabelswithrelations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -158,6 +158,21 @@ namespace bikestore2.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("ProductStore", b =>
+                {
+                    b.Property<int>("ProductsProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoresStoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductsProductId", "StoresStoreId");
+
+                    b.HasIndex("StoresStoreId");
+
+                    b.ToTable("ProductStore");
+                });
+
             modelBuilder.Entity("bike_store_2.Data.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -225,121 +240,262 @@ namespace bikestore2.Migrations
 
             modelBuilder.Entity("bike_store_2.Entities.Brand", b =>
                 {
-                    b.Property<int>("brand_id")
+                    b.Property<int>("BrandId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("brand_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BrandId"));
 
-                    b.Property<string>("brand_name")
+                    b.Property<string>("BrandName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("brand_id");
+                    b.HasKey("BrandId");
 
                     b.ToTable("Brands");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Category", b =>
                 {
-                    b.Property<int>("cate_id")
+                    b.Property<int>("CategoryId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("cate_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryId"));
 
-                    b.Property<string>("cate_name")
+                    b.Property<string>("CategoryName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("cate_id");
+                    b.HasKey("CategoryId");
 
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("bike_store_2.Entities.Employee", b =>
+            modelBuilder.Entity("bike_store_2.Entities.Customer", b =>
                 {
-                    b.Property<int>("Emp_id")
+                    b.Property<int>("CustomerId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Emp_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerId"));
 
-                    b.Property<string>("Emp_Email")
+                    b.Property<string>("City")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Emp_name")
+                    b.Property<string>("CustomerEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CustumerName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Emp_phone")
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("Emp_salary")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("Street")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("Store_id")
+                    b.HasKey("CustomerId");
+
+                    b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("bike_store_2.Entities.Employee", b =>
+                {
+                    b.Property<int>("EmployeeId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.HasKey("Emp_id");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmployeeId"));
 
-                    b.HasIndex("Store_id");
+                    b.Property<string>("EmployeeEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmployeeName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmployeePhone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("EmployeeSalary")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EmployeeId");
+
+                    b.HasIndex("StoreId");
 
                     b.ToTable("Employees");
                 });
 
-            modelBuilder.Entity("bike_store_2.Entities.Product", b =>
+            modelBuilder.Entity("bike_store_2.Entities.Order", b =>
                 {
-                    b.Property<int>("product_id")
+                    b.Property<int>("OrderId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("product_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
 
-                    b.Property<int?>("brand_id")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("cate_id")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("list_price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("model_year")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("product_name")
+                    b.Property<string>("CustomerName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("product_id");
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("brand_id");
+                    b.Property<bool>("IsExist")
+                        .HasColumnType("bit");
 
-                    b.HasIndex("cate_id");
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ShippedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("OrderId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("bike_store_2.Entities.OrderItem", b =>
+                {
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Discount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("Listprice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Quantity")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("int");
+
+                    b.HasKey("OrderId", "ProductId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("OrderItems", (string)null);
+                });
+
+            modelBuilder.Entity("bike_store_2.Entities.Product", b =>
+                {
+                    b.Property<int>("ProductId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductId"));
+
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsExisit")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("ListPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ModelYear")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ProductId");
+
+                    b.HasIndex("BrandId");
+
+                    b.HasIndex("CategoryId");
 
                     b.ToTable("Products");
                 });
 
+            modelBuilder.Entity("bike_store_2.Entities.ProductStore", b =>
+                {
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quanttity")
+                        .HasColumnType("INT");
+
+                    b.HasKey("ProductId", "StoreId");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("ProductStores", (string)null);
+                });
+
             modelBuilder.Entity("bike_store_2.Entities.Store", b =>
                 {
-                    b.Property<int>("store_id")
+                    b.Property<int>("StoreId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("store_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreId"));
 
-                    b.Property<string>("city")
+                    b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("store_name")
+                    b.Property<bool>("IsExist")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StoreName")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("city")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("street")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("store_id");
+                    b.HasKey("StoreId");
 
                     b.ToTable("Stores");
                 });
@@ -395,28 +551,108 @@ namespace bikestore2.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ProductStore", b =>
+                {
+                    b.HasOne("bike_store_2.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductsProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("bike_store_2.Entities.Store", null)
+                        .WithMany()
+                        .HasForeignKey("StoresStoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("bike_store_2.Entities.Employee", b =>
                 {
                     b.HasOne("bike_store_2.Entities.Store", "Store")
                         .WithMany("Employees")
-                        .HasForeignKey("Store_id");
+                        .HasForeignKey("StoreId");
 
                     b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("bike_store_2.Entities.Order", b =>
+                {
+                    b.HasOne("bike_store_2.Entities.Customer", "Customer")
+                        .WithMany("Orders")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("bike_store_2.Entities.Employee", "Employee")
+                        .WithMany("Orders")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("bike_store_2.Entities.Store", "Store")
+                        .WithMany("Orders")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("bike_store_2.Entities.OrderItem", b =>
+                {
+                    b.HasOne("bike_store_2.Entities.Order", "Orders")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("bike_store_2.Entities.Product", "Products")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Orders");
+
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Product", b =>
                 {
                     b.HasOne("bike_store_2.Entities.Brand", "Brands")
                         .WithMany("Products")
-                        .HasForeignKey("brand_id");
+                        .HasForeignKey("BrandId");
 
                     b.HasOne("bike_store_2.Entities.Category", "Category")
                         .WithMany("Products")
-                        .HasForeignKey("cate_id");
+                        .HasForeignKey("CategoryId");
 
                     b.Navigation("Brands");
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("bike_store_2.Entities.ProductStore", b =>
+                {
+                    b.HasOne("bike_store_2.Entities.Product", "Products")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("bike_store_2.Entities.Store", "Stores")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Products");
+
+                    b.Navigation("Stores");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Brand", b =>
@@ -429,9 +665,31 @@ namespace bikestore2.Migrations
                     b.Navigation("Products");
                 });
 
+            modelBuilder.Entity("bike_store_2.Entities.Customer", b =>
+                {
+                    b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("bike_store_2.Entities.Employee", b =>
+                {
+                    b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("bike_store_2.Entities.Order", b =>
+                {
+                    b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("bike_store_2.Entities.Product", b =>
+                {
+                    b.Navigation("OrderItems");
+                });
+
             modelBuilder.Entity("bike_store_2.Entities.Store", b =>
                 {
                     b.Navigation("Employees");
+
+                    b.Navigation("Orders");
                 });
 #pragma warning restore 612, 618
         }

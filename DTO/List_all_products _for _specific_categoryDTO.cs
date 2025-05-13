@@ -5,9 +5,19 @@ namespace bike_store_2.DTO
 {
     public class List_all_products__for__specific_categoryDTO
     {
-        public string Category_Name { get; set; }
-        public List<string> Product_Name { get; set; } = new List<string>();
-        //[JsonIgnore]
-        public virtual List<Product>? Products { get; set; } = new List<Product>();
+        public string CategoryName { get; set; } = null!;
+        public List<ProductDetailsDTO> ProductDetails { get; set; } = new List<ProductDetailsDTO>();
+        
     }
+
+
+
+    public class ProductDetailsDTO
+    {
+        public string ProductName { get; set; }
+        public decimal price { get; set; }
+        public string ModelYear { get; set; }
+    }
+
+
 }
