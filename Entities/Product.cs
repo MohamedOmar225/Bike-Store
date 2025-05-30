@@ -19,7 +19,7 @@ namespace bike_store_2.Entities
         public int? BrandId { get; set; }
         [ForeignKey("Category")]
         public int? CategoryId { get; set; }
-        public bool IsExisit { get; set; } = true;
+        public bool IsExisit { get; set; } = true;        
         [JsonIgnore]
         public Brand? Brands { get; set; } 
         [JsonIgnore]
@@ -28,5 +28,7 @@ namespace bike_store_2.Entities
         public ICollection<Store> Stores { get; set; } = new List<Store>();
         [JsonIgnore]
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        [JsonIgnore]
+        public ICollection<ImageForProduct> imageForProducts { get; set; } = new List<ImageForProduct>();
     }
 }

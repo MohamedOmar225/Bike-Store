@@ -341,6 +341,33 @@ namespace bikestore2.Migrations
                     b.ToTable("Employees");
                 });
 
+            modelBuilder.Entity("bike_store_2.Entities.ImageForProduct", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ImageName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsMainImage")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("imageForProducts");
+                });
+
             modelBuilder.Entity("bike_store_2.Entities.Order", b =>
                 {
                     b.Property<int>("OrderId")
@@ -570,6 +597,17 @@ namespace bikestore2.Migrations
                     b.Navigation("Store");
                 });
 
+            modelBuilder.Entity("bike_store_2.Entities.ImageForProduct", b =>
+                {
+                    b.HasOne("bike_store_2.Entities.Product", "Product")
+                        .WithMany("imageForProducts")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("bike_store_2.Entities.Order", b =>
                 {
                     b.HasOne("bike_store_2.Entities.Customer", "Customer")
@@ -678,6 +716,8 @@ namespace bikestore2.Migrations
             modelBuilder.Entity("bike_store_2.Entities.Product", b =>
                 {
                     b.Navigation("OrderItems");
+
+                    b.Navigation("imageForProducts");
                 });
 
             modelBuilder.Entity("bike_store_2.Entities.Store", b =>
