@@ -1,10 +1,16 @@
 
+using bike_store_2.Conforming_Services.Email_Service;
+using bike_store_2.Conforming_Services.Phone_Service;
 using bike_store_2.Data;
+using bike_store_2.Repositories;
+using bike_store_2.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+
+
 
 namespace WebApplication1
 {
@@ -16,10 +22,40 @@ namespace WebApplication1
 
             builder.Services.AddControllers();
 
+         
+
+            // Add services to the container.
+            builder.Services.AddScoped<IProductRepository, ProductRepository>();
+            builder.Services.AddScoped<IProductFileService, ProductFileService>();
+            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+            builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+            builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+            builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+            builder.Services.AddScoped<IStoreRepository, StoreRepository>();
+
+            // Add Email Service
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IPhoneService, PhoneService>();
+
+
             builder.Services.AddEndpointsApiExplorer();
 
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-               .AddEntityFrameworkStores<AppDbContext>();
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(option =>
+            {                
+                option.Password.RequiredLength = 8;
+                option.Password.RequireDigit = true;
+                option.Password.RequireLowercase = true;
+                option.Password.RequireUppercase = true;
+                option.Password.RequireNonAlphanumeric = true;
+                option.Password.RequiredUniqueChars = 1;
+            })
+               .AddEntityFrameworkStores<AppDbContext>()
+               .AddDefaultTokenProviders();
+
+            // token time expiration
+            builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+            options.TokenLifespan = TimeSpan.FromMinutes(10));
 
             #region AddSwaggerGen
             builder.Services.AddSwaggerGen(c =>
@@ -72,8 +108,10 @@ namespace WebApplication1
                 };
             });
 
+                         
             
-            //builder.Services.AddSwaggerGen();
+            
+
 
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
@@ -82,18 +120,30 @@ namespace WebApplication1
           
 
             var app = builder.Build();
+           
 
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
-            //app.UseHttpsRedirection();                       
+                          
             app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
+
+            // builder = WebApplication.CreateBuilder(args);
+
+            //builder.Services.AddControllers(options =>
+            //{
+            //    options.ModelBinderProviders.Insert(0, new JsonModelBinderProvider());
+            //});
+
+            //app = builder.Build();
+
+            //app.MapControllers();
+
 
             app.Run();
 
@@ -106,7 +156,7 @@ namespace WebApplication1
 
 
 
-
+            
 
 
 
