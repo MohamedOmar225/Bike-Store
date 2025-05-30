@@ -10,7 +10,7 @@ namespace bike_store_2.Data
     public class AppDbContext : IdentityDbContext<ApplicationUser> //DbContext    
     {
        
-        public AppDbContext(DbContextOptions options) : base(options)
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
 
         }
@@ -25,6 +25,7 @@ namespace bike_store_2.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<ImageForProduct> imageForProducts { get; set; }
 
 
 
@@ -32,6 +33,7 @@ namespace bike_store_2.Data
         {
             base.OnModelCreating(modelBuilder);
 
+           
             // اول طريقه بعملها لكل model عندي
             //modelBuilder.ApplyConfiguration(new CourseConfigration());
 
