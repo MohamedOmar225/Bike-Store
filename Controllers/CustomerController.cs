@@ -1,6 +1,7 @@
 ﻿using bike_store_2.Data;
 using bike_store_2.DTO;
 using bike_store_2.Entities;
+using bike_store_2.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,273 +14,147 @@ namespace bike_store_2.Controllers
     public class CustomerController : ControllerBase
     {
 
-        private readonly AppDbContext appDbContext;
-        public CustomerController(AppDbContext appDbContext)
+       
+        private readonly ICustomerRepository _customerRepository;
+        public CustomerController(ICustomerRepository _customerRepository)
         {
-            this.appDbContext = appDbContext;
+            this._customerRepository = _customerRepository;
         }
 
-
-        // create new customer
+        [Authorize(Roles = "Admin")]
         [HttpPost]
-        public IActionResult CreateCustomer([FromBody] Customer customer)
-        {            
+        public async Task<IActionResult> CreateCustomer([FromForm] CreateCustomerDTO createCustomer)
+        {
             try
             {
                 if (!ModelState.IsValid)
-                {
                     return BadRequest(ModelState);
-                }
-                appDbContext.Customers.Add(customer);
-                appDbContext.SaveChanges();
+
+                var customer = await _customerRepository.CreateCustomerAsync(createCustomer);
                 return Ok(new
                 {
-                    Massage = "Customer added Successfully.",
+                    Message = "Customer added successfully.",
                     Customer = customer
                 });
             }
-            catch
+            catch (Exception ex)
             {
-                return StatusCode(500, "An error occurred while creating the customer.");
+                return StatusCode(500, $"An error occurred while creating the customer: {ex.Message}");
+            }
+
+        }
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut]
+        [Route("{id:int}")]
+        public async Task<IActionResult> UpdateCustomer(int id, [FromForm] UpdateCustomerDto updateCustomer)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var customer = await _customerRepository.UpdateCustomerAsync(id, updateCustomer);
+                return Ok(new
+                {
+                    Message = "Customer updated successfully.",
+                    Customer = customer
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while updating the customer: {ex.Message}");
             }
         }
 
 
 
-        // return data
+        [Authorize(Roles = "Admin")]
         [HttpGet]
-        [Route("All Customers")]
-        public IActionResult GetAllCustomers()
+        [Route("All Active Customers")]
+        public async Task<IActionResult> GetAllExistingCustomers()
         {
             try
             {
-                var customer = appDbContext.Customers.Where(c => c.IsActive).ToList();
-                //var customer = appDbContext.Customers.ToList();
-                if (customer == null)
-                {
-                    return NotFound("No customers found.");
-                }
-                return Ok(customer);
+                if(!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var customers = await _customerRepository.GetAllExistingCustomersAsync();
+                return Ok(customers);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"An error occurred while fetching the customers: {ex.Message}");
             }
-
         }
 
 
 
-        // return data by id
-        [HttpGet("Get Customer Information/{id:int}")]
-        public IActionResult GetCustomerByID([FromRoute] int id)
-        {
-            try
-            {
-                var customer = appDbContext.Customers
-                    .Include(o => o.Orders)
-                    .FirstOrDefault(p => p.CustomerId == id && p.IsActive);
-
-                if (customer != null)
-                {
-                    return Ok(customer);
-                }
-                else
-                {
-                    return NotFound($"No customers found with this id.");
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-
-
-
-        [HttpGet("Get Order Details For Customer id")]
-        public IActionResult GetCustomerOrderDetails(int id)
-        {
-            try
-            {
-                var customer = appDbContext.Customers
-                    .Include(o => o.Orders)
-                    .FirstOrDefault(p => p.CustomerId == id && p.IsActive);
-
-                if (customer != null)
-                {
-                    var orderdetails = customer.Orders
-                        .Where(o => o.IsExist)
-                        .Select(o => new OrderShortDto
-                        {
-                            OrderId = o.OrderId,
-                            OrderDate = o.OrderDate,
-                            ShippedDate = o.ShippedDate,
-                            TotalAmount = o.TotalAmount,
-                        }).ToList();                
-
-                    if(!customer.Orders.Any(o => o.IsExist)) // لو مفيش اي اوردرات للعميل دا قيمتها ترو ينفذ
-                    {
-                        return Ok( new 
-                        {
-                            CustomerName = customer.CustumerName,
-                            massage = "This customer does not make any orders."
-                        });
-                    }
-
-                    var CustomerDto = new CustomerWithOrdersDto
-                    {
-                        CustomerId = customer.CustomerId,
-                        CustomerName = customer.CustumerName,
-                        Orders = orderdetails
-                    };
-                    return Ok(CustomerDto);
-                }                               
-                return NotFound("No customer found with this ID");                                               
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-
-
-
-        [HttpGet("{name}")]
-        public IActionResult GetCustomerByname([FromRoute] string name)
-        {
-            try
-            {
-                var customer = appDbContext.Customers
-                    .Include(o => o.Orders)
-                    .FirstOrDefault(p => p.CustumerName.ToLower() == name.ToLower() && p.IsActive);
-                if (customer != null)
-                {
-                    return Ok(customer);
-                }
-                else
-                {
-                    return NotFound($"No customers found with this name.");
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-
-
-
-        [HttpGet("Get Order Details For Customer/{name}")]
-        public IActionResult GetCustomerOrderDetails(string name)
-        {
-            try
-            {
-                var customer = appDbContext.Customers
-                    .Include(o => o.Orders)
-                    .FirstOrDefault(p => p.CustumerName == name && p.IsActive);
-
-                if (customer != null)
-                {
-                    var orderdetails = customer.Orders
-                        .Where(o => o.IsExist)
-                        .Select(o => new OrderShortDto
-                        {
-                            OrderId = o.OrderId,
-                            OrderDate = o.OrderDate,
-                            ShippedDate = o.ShippedDate,
-                            TotalAmount = o.TotalAmount,
-                        }).ToList();
-
-                    if (!customer.Orders.Any(o => o.IsExist)) // لو مفيش اي اوردرات للعميل دا قيمتها ترو ينفذ
-                    {
-                        return Ok(new
-                        {
-                            CustomerName = customer.CustumerName,
-                            massage = "This customer does not make any orders."
-                        });
-                    }
-
-                    var CustomerDto = new CustomerWithOrdersDto
-                    {
-                        CustomerId = customer.CustomerId,
-                        CustomerName = customer.CustumerName,
-                        Orders = orderdetails
-                    };
-                    return Ok(CustomerDto);
-                }
-                return NotFound("No customer found with this ID");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-
-
-
-
-        // update data
-        [HttpPut("{id:int}")]
-        public IActionResult UpdataCustomer([FromRoute] int id, [FromBody] Customer customer)
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        [Route("All Deleted Customers")]
+        public async Task<IActionResult> GetAllDeletedCustomers()
         {
             try
             {
                 if (!ModelState.IsValid)
-                {
-                    return BadRequest("Invalid data provided.");
-                }
-                var old_customer = appDbContext.Customers                    
-                    .FirstOrDefault(p => p.CustomerId == id);
-                if (old_customer != null)
-                {
-                    old_customer.CustumerName = customer.CustumerName;                    
-                    old_customer.PhoneNumber = customer.PhoneNumber;
-                    old_customer.CustomerEmail = customer.CustomerEmail;
-                    old_customer.City = customer.City;
-                    old_customer.Street = customer.Street;           
-                    old_customer.IsActive = customer.IsActive;
-                    appDbContext.SaveChanges();
-                    return Ok(new
-                    {
-                        Massage = "Customer updated Successfully.",
-                        customer = old_customer,
-                    });
-                }
-                return NotFound($"No customers found with this id.");
+                    return BadRequest(ModelState);
+
+                var customers = await _customerRepository.GetAllDeletedCustomersAsync();
+                return Ok(customers);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while fetching the customers: {ex.Message}");
             }
         }
 
 
 
 
-        // Delete
-        [HttpDelete("{id:int}")]
-        public IActionResult DeleteCustomer(int id)
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        [Route("Get Customer Information/{id:int}")]
+        public async Task<IActionResult> GetCustomerByID([FromRoute] int id)
         {
             try
             {
-                var customer = appDbContext.Customers.FirstOrDefault(p => p.CustomerId == id && p.IsActive);
-                if (customer != null)
-                {
-                    customer.IsActive = false;
-                    //appDbContext.Customers.Remove(customer);
-                    appDbContext.SaveChanges();
-                    return Ok("Customer deleted successfully.");
-                }
-                return NotFound($"No customers found with this id.");
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var customer = await _customerRepository.GetCustomerByIdAsync(id);
+                if(customer == null)
+                    return BadRequest($"No customers found with this id {id}.");
+
+                return Ok(customer);
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        [Route("Get Customer Information/{name}")]
+        public async Task<IActionResult> GetCustomerByName([FromRoute] string name)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var customer = await _customerRepository.GetCustomerByNameAsync(name);
+                if (customer == null)
+                    return BadRequest($"No customers found with this name {name}.");
+
+                return Ok(customer);
             }
             catch (Exception ex)
             {
@@ -291,48 +166,24 @@ namespace bike_store_2.Controllers
 
 
 
-        //***************************************************
+        [Authorize(Roles = "Admin")]
+        [HttpDelete]
+        [Route("{id:int}")]
+        public async Task<IActionResult> DeleteCustomer(int id)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-        //[HttpGet("Get Order Details For Customer By Id")]
-        //public IActionResult GetCustomerOrderDetails(int id)
-        //{
-        //    try
-        //    {
-        //        Customer? customer = appDbContext.Customers
-        //            .Include(o => o.Orders)
-        //            .FirstOrDefault(p => p.CustomerId == id && p.IsActive);
-
-        //        if (customer != null)
-        //        {
-        //            var customerdto = new CustomerWithOrdersDto
-        //            {
-        //                CustomerId = customer.CustomerId,
-        //                CustomerName = customer.CustumerName,                       
-        //                Orders = customer.Orders.Select(o => new OrderShortDto
-        //                {
-        //                    OrderId = o.OrderId,
-        //                    OrderDate = o.OrderDate,
-        //                    ShippedDate = o.ShippedDate,
-        //                    TotalAmount = o.TotalAmount,
-        //                }).ToList()
-        //            };
-        //            return Ok(customerdto);
-        //        }
-        //        else
-        //        {
-        //            return NotFound($"No customers found with this id.");
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, $"Internal server error: {ex.Message}");
-        //    }
-        //}
-
-
-
-        
-
+                await _customerRepository.DeleteCustomerAsync(id);
+                return Ok("Customer deleted successfully.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
 
 
 

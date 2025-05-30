@@ -1,6 +1,7 @@
 ﻿using bike_store_2.Data;
 using bike_store_2.DTO;
 using bike_store_2.Entities;
+using bike_store_2.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,273 +14,192 @@ namespace bike_store_2.Controllers
     public class CategoryController : ControllerBase
     {
 
+
+        private readonly ICategoryRepository _categoryRepository;
         private readonly AppDbContext appDbContext;
-        public CategoryController(AppDbContext appDbContext)
+
+
+
+        public CategoryController(ICategoryRepository _categoryRepository , AppDbContext appDbContext)
         {
+            this._categoryRepository = _categoryRepository;
             this.appDbContext = appDbContext;
         }
 
-        // create new category
+
+        [Authorize(Roles = "Admin")]
         [HttpPost]
-        public IActionResult CreateCategory([FromBody] Category category)
-        {            
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-                appDbContext.Categories.Add(category);
-                appDbContext.SaveChanges();
-                return Ok(new
-                {
-                    Massage = "Category added Successfully.",
-                    Category = category
-                });
-            }
-            catch
-            {
-                return StatusCode(500, "An error occurred while creating the category.");
-            }
-        }
-
-
-        // return data 
-        [HttpGet]
-        [Route("All category")]
-        public IActionResult GetAllcategory()
+        public async Task<IActionResult> CreateCategory([FromForm] CategoryDTO categoryDTO)
         {
             try
             {
-                var catrgories = appDbContext.Categories.Where(c => c.IsExsit).ToList();
-                if (catrgories != null)
-                {
-                    return Ok(catrgories);
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-                }
+                var createdCategory = await _categoryRepository.CreateCategoryAsync(categoryDTO);
+                return Ok(new
+                {
+                    Message = "Category added successfully.",
+                    Category = createdCategory
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while creating the category: {ex.Message}");
+            }
+
+        }
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut]
+        [Route("{id:int}")]
+        public async Task<IActionResult> UpdateCategory(int id, [FromForm] CategoryUpdateDTO updateDTO)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var category = await _categoryRepository.GetCategoryByIdAsync(id);
+
+                if (category == null)
+                    return NotFound($"No categories found with this id.");
+
+
+                var updatedCategory = await _categoryRepository.UpdateCategoryAsync(id, updateDTO);
+                return Ok(new
+                {
+                    Message = "Category updated successfully.",
+                    Category = updatedCategory
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while updating the category: {ex.Message}");
+            }
+
+        }
+
+
+
+
+
+
+        [Authorize(Roles = "User")]
+        [HttpGet]
+        [Route("All Existing categories")]
+        public async Task<IActionResult> GetAllExistingCategories()
+        {
+            try
+            {
+                var categories = await _categoryRepository.GetAllExistingCategoriesAsync();
+                if (categories != null)
+                    return Ok(categories);
+
                 return NotFound("No categories found.");
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"An error occurred while fetching the categories: {ex.Message}");
             }
-
         }
 
 
-        [HttpGet("cate-ID&NameDTO")]
-        public IActionResult GetCategoryIdandNameDTO()
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        [Route("All Deleted categories")]
+        public async Task<IActionResult> GetAllDeletedCategories()
         {
             try
             {
-                var catrgories = appDbContext.Categories.Where(c => c.IsExsit).ToList();
-                if (catrgories != null)
-                {
-                    List<GetCategoryIdandNameDTO> getCategoryIdandNameDTO = new List<GetCategoryIdandNameDTO>();
+                var categories = await _categoryRepository.GetAllDeletedCategoriesAsync();
+                if (categories != null)
+                    return Ok(categories);
 
-                    foreach (var item in catrgories)
-                    {
-                        getCategoryIdandNameDTO.Add(new GetCategoryIdandNameDTO()
-                        {
-                            Id = item.CategoryId,
-                            Name = item.CategoryName
-                        });
-                    }
-                    return Ok(getCategoryIdandNameDTO);
-                }
-                return NotFound($"No categories found.");
+                return NotFound("No categories found.");
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"An error occurred while fetching the categories: {ex.Message}");
             }
-
         }
 
 
-        // return data by id
-        [HttpGet("{id:int}")]
-        public IActionResult GetCategoryByID([FromRoute] int id)
+
+
+
+
+        [Authorize(Roles = "User")]
+        [HttpGet]
+        [Route("{id:int}")]
+        public async Task<IActionResult> GetCategoryById(int id)
         {
             try
             {
-                var category = appDbContext.Categories
-                    .Include(p => p.Products)
-                    .FirstOrDefault(p => p.CategoryId == id && p.IsExsit);
+                var category = await _categoryRepository.GetCategoryByIdAsync(id);
+
                 if (category != null)
-                {
                     return Ok(category);
-                }
-                else
-                {
-                    return NotFound($"No categories found with this id.");
-                }
+
+                return NotFound($"No categories found with this id.");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while fetching the category: {ex.Message}");
             }
         }
 
 
-        // get by category name
-        [HttpGet("{name}")]
-        public IActionResult GetCategoryByName(string name)
+
+        [Authorize(Roles = "User")]
+        [HttpGet]
+        [Route("{name}")]
+        public async Task<IActionResult> GetCategoryByName(string name)
         {
             try
             {
-                var category = appDbContext.Categories
-                    .Include(p => p.Products)
-                    .FirstOrDefault(p => p.CategoryName.ToLower() == name.ToLower() && p.IsExsit);
-                if (category != null)
-                {
-                    return Ok(category);
-                }
-                else
-                {
+                var category = await _categoryRepository.GetCategoryByNameAsync(name);
+
+                if (category == null)
                     return NotFound($"No categories found with this name.");
-                }
+
+                return Ok(category);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while fetching the category: {ex.Message}");
             }
         }
 
 
 
-        [HttpGet("Products details under a specific categoryDTO")]
-        public IActionResult ListAllProductsNameForSpecificCategoryDTO(int CategoryId)
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpDelete]
+        [Route("{id:int}")]
+        public async Task<IActionResult> DeleteCategory(int id)
         {
             try
             {
-                Category? category = appDbContext.Categories
-                    .Include(p => p.Products)
-                    .FirstOrDefault(p => p.CategoryId == CategoryId && p.IsExsit);
-                if (category != null)
-                {
+                var category = await _categoryRepository.GetCategoryByIdAsync(id);
+                if (category == null)
+                    return NotFound($"No categories found with this id.");
 
-                    var productdetails = category.Products
-                        .Where(p => p.IsExisit)
-                        .Select(p => new ProductDetailsDTO
-                        {
-                            ProductName = p.ProductName,
-                            price = p.ListPrice,
-                            ModelYear = p.ModelYear,
-                        }).ToList();
-
-                    if (!category.Products.Any(p => p.IsExisit))
-                    {
-                        return Ok(new
-                        {
-                            ProductName = category.Products.First().ProductName,
-                            massage = "This product does not exist under this category."
-                        });
-                    }
-
-                    var productdto = new List_all_products__for__specific_categoryDTO
-                    {
-                        CategoryName = category.CategoryName,
-                        ProductDetails = productdetails
-                    };
-
-                    return Ok(productdto);
-                }
-                return NotFound($"No categories found with this id.");
+                await _categoryRepository.DeleteCategoryAsync(id);
+                return Ok("Category deleted successfully.");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-        // update category 
-        [HttpPut("{id:int}")]
-        public IActionResult UpdataCategory([FromRoute] int id, [FromBody] Category category)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest("Invalid data provided.");
-                }
-                var old_category = appDbContext.Categories
-                    .Include(p => p.Products)
-                    .FirstOrDefault(p => p.CategoryId == id);
-                if (old_category != null)
-                {
-                    old_category.CategoryName = category.CategoryName;
-                    old_category.IsExsit = category.IsExsit;
-                    appDbContext.SaveChanges();
-                    return Ok(new
-                    {
-                        Massage = "Category updated Successfully.",
-                        category = old_category,                           
-                    });
-                }
-                return NotFound($"No categories found with this id.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while deleting the category: {ex.Message}");
             }
 
         }
-
-
-        // Delete
-        [HttpDelete("{id:int}")]
-        public IActionResult DeleteByID(int id)
-        {
-            try
-            {
-                var category = appDbContext.Categories.FirstOrDefault(p => p.CategoryId == id && p.IsExsit);
-                var products = appDbContext.Products.Where(p => p.CategoryId == id && p.IsExisit).ToList();
-                if (category != null && products != null)
-                {
-                    foreach (var product in products)
-                    {                        
-                        product.IsExisit = false;
-                    }                    
-                    category.IsExsit = false;
-                    appDbContext.SaveChanges();
-                    return Ok("category deleted successfully.");
-                }
-                return NotFound($"No categories found with this id.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-
-
-
-
-
-
-
-        //*************************************************
-
-
-
-
-
-
-
        
-
-
-
-
-
-
-
-
-
-
     }
 }

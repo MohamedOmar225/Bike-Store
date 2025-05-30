@@ -1,9 +1,9 @@
-﻿using bike_store_2.Data;
-using bike_store_2.DTO;
-using bike_store_2.Entities;
+﻿using bike_store_2.DTO;
+using bike_store_2.Repositories;
+using bike_store_2.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using static bike_store_2.DTO.ProductDetailsdto;
 
 
 namespace bike_store_2.Controllers
@@ -13,64 +13,33 @@ namespace bike_store_2.Controllers
     [Authorize]
     public class ProductController : ControllerBase
     {
-        private readonly AppDbContext appDbContext;
-        public ProductController(AppDbContext appDbContext)
+        private readonly IProductRepository _product_repo;
+        public ProductController(IProductRepository product_repo)
         {
-            this.appDbContext = appDbContext;
+            _product_repo = product_repo;
+
         }
 
 
-        // create new product
+        [Authorize(Roles = "Admin")]
         [HttpPost]
-        public IActionResult CreateProductWithStores([FromBody] AddProductToStore productdto)
+        public async Task<IActionResult> CreateProductAsync([FromForm] AddProductToStore productdto)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                var category = appDbContext.Categories.FirstOrDefault(c => c.CategoryId == productdto.CategoryId && c.IsExsit);
-                var brand = appDbContext.Brands.FirstOrDefault(b => b.BrandId == productdto.BrandId && b.IsExist);
+                var product = await _product_repo.CreateProductAsync(productdto);
+                await _product_repo.SaveProductImageAsync(product.ProductId, product.ProductName, productdto.ImageFiles);
 
-                if (category != null && brand != null)
+                return Ok(new
                 {
-                    var Product = new Product
-                    {
-                        ProductName = productdto.ProductName,
-                        ListPrice = productdto.ListPrice,
-                        ModelYear = productdto.ModelYear,
-                        CategoryId = productdto.CategoryId,
-                        BrandId = productdto.BrandId,
-                        IsExisit = true
-                    };
-
-                    appDbContext.Products.Add(Product);
-                    appDbContext.SaveChanges();
-
-                    // اضافه المنتج في المحل
-                    foreach (var product in productdto.stoerQuantities)
-                    {
-                        var stores = appDbContext.Stores.FirstOrDefault(s => s.StoreId == product.StoreId && s.IsExist);
-                        if (stores != null)
-                        {
-                            var productStore = new ProductStore
-                            {
-                                ProductId = Product.ProductId,
-                                StoreId = product.StoreId,
-                                Quanttity = product.Quantity
-                            };
-                            appDbContext.ProductStores.Add(productStore);
-                        }
-                    }
-                    appDbContext.SaveChanges();
-                    return Ok(new
-                    {
-                        Massage = "Product created and assigned to stores successfully.",
-                        Product = productdto
-                    });
-                }
-                return BadRequest("Invalid Category or Brand");
-            }                    
+                    Massage = "Product created successfully.",
+                    Product = productdto,
+                    imageCount = productdto.ImageFiles.Count
+                });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
@@ -79,19 +48,87 @@ namespace bike_store_2.Controllers
 
 
 
-        // return data
-        [HttpGet]
-        [Route("All Products")]
-        public IActionResult GetAllProducts()
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateProduct([FromRoute] int id, [FromForm] UpdateProductDto updateProductDto)
         {
             try
             {
-                //var products = appDbContext.Products.ToList();
-                var products = appDbContext.Products.Where(p => p.IsExisit).ToList();
-                if (products == null || !products.Any())
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid data provided.");
+
+                var old_product = await _product_repo.UpdateProductAsync(id, updateProductDto);
+                await _product_repo.UpdateProductImageAsync(id, updateProductDto.MainImage);
+
+                return Ok(new
                 {
+                    Massage = "Product updated successfully.",
+                    Product = old_product
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+
+
+
+        [Authorize(Roles = "User")]
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetProductByID([FromRoute] int id)
+        {
+            try
+            {
+                var Product = await _product_repo.GetProductByIdAsync(id);
+
+                if (Product == null)
+                    return NotFound($"No products found with this id {id}.");
+
+                return Ok(Product);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+
+        [Authorize(Roles = "User")]
+        [HttpGet("{name}")]
+        public async Task<IActionResult> GetProductByName([FromRoute] string name)
+        {
+            try
+            {
+                var product = await _product_repo.GetProductByNameAsync(name);
+                if (product == null)
+                    return NotFound($"No products found with this name {name}.");
+
+                return Ok(product);
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+
+
+
+
+        [Authorize(Roles = "User")]
+        [HttpGet]
+        [Route("All Existing Products")]
+        public async Task<IActionResult> GetAllExistingProductsAsync()
+        {
+            try
+            {
+                var products = await _product_repo.GetAllExistProductsAsync();
+                if (products == null || !products.Any())
                     return NotFound("No products found.");
-                }
+
                 return Ok(products);
             }
             catch (Exception ex)
@@ -101,92 +138,49 @@ namespace bike_store_2.Controllers
         }
 
 
-        // return data by id
-        [HttpGet("{id:int}")]
-        public IActionResult GetProductByID([FromRoute] int id)
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        [Route("All Deleted Products")]
+        public async Task<IActionResult> GetAllDeletedProductsAsync()
         {
             try
             {
-                var product = appDbContext.Products
-                    .Include(c => c.Category).Include(s => s.Stores).Include(b => b.Brands).Include(oi => oi.OrderItems)
-                    .FirstOrDefault(p => p.ProductId == id && p.IsExisit);
-                if (product != null)
-                {
-                    return Ok(product);
-                }
-                else
-                {
-                    return NotFound($"No products found with this id.");
-                }
+                var products = await _product_repo.GetAllDeletedProductsAsync();
+                if (products == null || !products.Any())
+                    return NotFound("No products found.");
+
+                return Ok(products);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while fetching the products: {ex.Message}");
             }
         }
 
 
-        // get by name
-        [HttpGet("{name}")]
-        public IActionResult GetProductByName([FromRoute] string name)
-        {            
-            try
-            {
-                var product = appDbContext.Products
-                    .Include(c => c.Category).Include(s => s.Stores).Include(b => b.Brands).Include(oi => oi.OrderItems)
-                    .FirstOrDefault(p => p.ProductName == name && p.IsExisit);
-                if (product != null)
-                {
-                    return Ok(product);
-                }
-                else
-                {
-                    return NotFound($"No products found with this name.");
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
 
 
-       
 
-        // update data
-        [HttpPut("{id:int}")]
-        public IActionResult UpdataProduct([FromRoute] int id, [FromBody] Product product)
+
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpDelete]
+        [Route("{id:int}")]
+        public async Task<IActionResult> DeleteProductByID(int id)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest("Invalid data provided.");
 
-                var category = appDbContext.Categories.FirstOrDefault(c => c.CategoryId == product.CategoryId && c.IsExsit);
-                var brand = appDbContext.Brands.FirstOrDefault(b => b.BrandId == product.BrandId && b.IsExist);
+                await _product_repo.DeleteProductAsync(id);
 
-                if (brand == null && category == null)
-                    return BadRequest("Invalid Category or Brand");
-
-                var old_product = appDbContext.Products
-                    .Include(c => c.Category)
-                    .FirstOrDefault(p => p.ProductId == id);
-                if (old_product != null)
-                {
-                    old_product.ProductName = product.ProductName;
-                    old_product.ModelYear = product.ModelYear;
-                    old_product.ListPrice = product.ListPrice;
-                    old_product.BrandId = product.BrandId;
-                    old_product.CategoryId = product.CategoryId;
-                    old_product.IsExisit = product.IsExisit;
-                    appDbContext.SaveChanges();
-                    return Ok(new
-                    {
-                        Massage = "Product updated successfully.",
-                        Product = old_product
-                    });
-                }
-                return NotFound($"No products found with this id.");
+                return Ok("Product deleted successfully.");
             }
             catch (Exception ex)
             {
@@ -195,31 +189,26 @@ namespace bike_store_2.Controllers
         }
 
 
-        // Delete
-        [HttpDelete("{id:int}")]
-        public IActionResult DeleteProductByID(int id)
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [Route("Uploade Image")]
+        public async Task<IActionResult> UploadeImages([FromForm] UploadeImagesForProducts uploadeImages)
         {
             try
             {
-                var product = appDbContext.Products.FirstOrDefault(p => p.ProductId == id && p.IsExisit);
-                if (product != null)
-                {                        
-                    product.IsExisit = false;                    
-                    var deletefromstore = appDbContext.ProductStores.Where(p => p.ProductId == id).ToList();
-                    if (deletefromstore != null)
-                    {
-                        appDbContext.RemoveRange(deletefromstore);
-                    }
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid data provided.");
 
-                    appDbContext.SaveChanges();
-                    return Ok("Product deleted from all stores successfully.");
-                }
-                return NotFound($"No products found with this id.");
+                await _product_repo.UploadImages(uploadeImages.productId, uploadeImages.ProductName, uploadeImages.ImageFile);
+
+                return Ok("Image uploaded successfully.");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return BadRequest($"Internal server error: {ex.Message}");
             }
+
         }
 
 
@@ -227,74 +216,23 @@ namespace bike_store_2.Controllers
 
 
 
+        [Authorize(Roles = "Admin")]
+        [HttpDelete]
+        [Route("Delete Image")]
+        public async Task<IActionResult> DeleteImages(int ProductId, int ImageId)
+        {
+
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid data provided.");
+
+            await _product_repo.DeleteImagesAsync(ProductId, ImageId);
+            return Ok("Image deleted successfully");
+
+        }
 
 
 
-
-
-        //**********************************************************************
-
-        //[HttpPost]
-        //public IActionResult CreateProduct([FromBody] Product product , int StoreId , int quantity)
-        //{
-        //    try
-        //    {
-        //        if (!ModelState.IsValid)
-        //        {
-        //            return BadRequest(ModelState);
-        //        }
-        //        var checkCategoryId = appDbContext.Categories.Where(x => x.CategoryId == product.CategoryId && x.IsExsit);
-        //        var checkBrandId = appDbContext.Brands.Where(x => x.BrandId == product.BrandId && x.IsExist);
-
-        //        if (checkCategoryId != null && checkBrandId != null)
-        //        {
-
-        //            var checkStore = appDbContext.Stores.Where(s => s.StoreId == StoreId);
-        //            if (checkStore != null)
-        //            {
-        //                appDbContext.Products.Add(product);
-        //                appDbContext.SaveChanges();
-
-        //                var newproduct = new ProductStore
-        //                {
-        //                    StoreId = StoreId,
-        //                    ProductId = product.ProductId,
-        //                    Quanttity = quantity,
-        //                };
-        //                appDbContext.ProductStores.Add(newproduct);
-        //                appDbContext.SaveChanges();
-
-        //                return Ok(new
-        //                {
-        //                    massage = "Product created and added into store successfully.",
-        //                    product = product,
-        //                });
-        //            }
-        //            return NotFound("Store does not exist.");
-
-        //        }
-        //        return BadRequest("Check if the category or brand are existing or not.");
-        //    }
-        //    catch
-        //    {
-        //        return StatusCode(500, "An error occurred while creating the product.");
-        //    }
-        //}
-
-
-
-
-
-
-
-
-
-
-
-
-
-       
-
+        
 
 
 

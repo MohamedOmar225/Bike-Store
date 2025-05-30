@@ -1,7 +1,10 @@
 ﻿using bike_store_2.Data;
 using bike_store_2.DTO;
+using bike_store_2.DTO.Store;
 using bike_store_2.Entities;
+using bike_store_2.Repositories;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,247 +15,203 @@ namespace bike_store_2.Controllers
     [Authorize]
     public class StoreController : ControllerBase
     {
-        private readonly AppDbContext appDbContext;
-        public StoreController(AppDbContext appDbContext)
+
+        private readonly IStoreRepository _storeRepository;
+        public StoreController(IStoreRepository storeRepository)
         {
-            this.appDbContext = appDbContext;
+            _storeRepository = storeRepository;
         }
 
 
-        // create new product
+        [Authorize(Roles = "Admin")]
         [HttpPost]
-        public IActionResult CreateStore([FromBody] Store store)
-        {           
+        public async Task<IActionResult> CreateStore([FromForm] CreateStoreDTO store)
+        {
             try
             {
                 if (!ModelState.IsValid)
-                {
                     return BadRequest(ModelState);
-                }
-                appDbContext.Stores.Add(store);
-                appDbContext.SaveChanges();
-                return Ok(new
-                {
-                    Massage = "Store added Successfully.",
-                    store = store
-                });
+
+                var createdStore = await _storeRepository.CreateStoreAsync(store);
+                if (createdStore == null)
+                    return BadRequest("Failed to create store.");
+
+                return Ok(createdStore);
             }
-            catch
+            catch (Exception ex)
             {
-                return StatusCode(500, "An error occurred while creating the store.");
+                return StatusCode(500, $"An error occurred while creating the store: {ex.Message}");
             }
         }
 
 
 
-        // return data
-        [HttpGet]
-        [Route("All Stores")]
-        public IActionResult GetAllStores()
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateStore(int id, [FromForm] UpdateStoreDto updateStore)
         {
             try
             {
-                var stores = appDbContext.Stores
-                    .Include(s => s.Products).Include(s => s.Orders).Include(s => s.Employees).Where(s => s.IsExist)
-                    .ToList();
-                if (stores == null)
-                {
-                    return NotFound("No stores found.");
-                }
-                return Ok(stores);
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var updatedStore = await _storeRepository.UpdateStoreAsync(id, updateStore);
+                if (updatedStore != null)
+                    return Ok(updatedStore);
+
+                return NotFound($"No store found with ID {id}.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while updating the store: {ex.Message}");
+            }
+        }
+
+
+
+
+
+
+        [Authorize(Roles = "User")]
+        [HttpGet("All Existing Stores")]
+        public async Task<IActionResult> GetAllExistingStores()
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var stores = await _storeRepository.GetAllExistingStoresAsync();
+                if (stores != null)
+                    return Ok(stores);
+
+                return NotFound("No existing stores found.");
+
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"An error occurred while fetching the stores: {ex.Message}");
             }
-
-        }
-
-
-        // return data by id
-        [HttpGet("{id:int}")]
-        public IActionResult GetStoreByID([FromRoute] int id)
-        {
-            try
-            {
-                var store = appDbContext.Stores
-                    .Include(s => s.Products).Include(s => s.Orders).Include(s => s.Employees)
-                    .FirstOrDefault(p => p.StoreId == id && p.IsExist);
-                if (store != null)
-                {
-                    return Ok(store);
-                }
-                else
-                {
-                    return NotFound($"No stores found with this id.");
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
         }
 
 
 
 
-        [HttpGet("Quantity Of Products In Store By Id")]
-        public IActionResult QuantityOfProductsInStore(int id)
-        {
-            try
-            {
-                var store = appDbContext.Stores
-                    .Include(s => s.Products).Include(s => s.Orders).Include(s => s.Employees)
-                    .FirstOrDefault(p => p.StoreId == id && p.IsExist);
-                if (store != null)
-                {
-                    var productdetails = appDbContext.ProductStores.Where(ps => ps.StoreId == id)
-                        .Include(ps => ps.Products)
-                        .Select(ps => new ProductDetails
-                        {
-                            ProductId = ps.ProductId,
-                            ProductName = ps.Products.ProductName,
-                            Quantity = ps.Quanttity
-                        }).ToList();
-                    var storeDto = new Store_and_QuantityofProduct_In_It
-                    {
-                        StoreName = store.StoreName,
-                        ProductDetails = productdetails,
-                    };
-                    if(!storeDto.ProductDetails.Any())
-                        return NotFound($"No products found in this store.");
-                    
-                    return Ok(storeDto);
-                }
-                else
-                {
-                    return NotFound($"No stores found with this id");
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-
-
-        [HttpGet("{name}")]
-        public IActionResult GetStoreByName([FromRoute] string name)
-        {
-            try
-            {
-                var store = appDbContext.Stores
-                     .Include(s => s.Products).Include(s => s.Orders).Include(s => s.Employees)
-                    .FirstOrDefault(p => p.StoreName == name && p.IsExist);
-                if (store != null)
-                {
-                    return Ok(store);
-                }
-                else
-                {
-                    return NotFound($"No customers found with this name.");
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-       
-
-
-
-        // update data
-        [HttpPut("{id:int}")]
-        public IActionResult UpdataStore([FromRoute] int id, [FromBody] Store store)
+        [Authorize(Roles = "Admin")]
+        [HttpGet("All Deleted Stores")]
+        public async Task<IActionResult> GetAllDeletedStores()
         {
             try
             {
                 if (!ModelState.IsValid)
-                {
-                    return BadRequest("Invalid data provided.");
-                }
-                var old_store = appDbContext.Stores
-                     .Include(s => s.Products).Include(s => s.Orders).Include(s => s.Employees)
-                    .FirstOrDefault(p => p.StoreId == id && p.IsExist);
-                if (old_store != null)
-                {
-                    old_store.StoreName = store.StoreName;
-                    old_store.city = store.city;
-                    old_store.street = store.street;
-                    old_store.Phone = store.Phone;
-                    old_store.Email = store.Email;
-                    old_store.IsExist = store.IsExist;
-                    appDbContext.SaveChanges();
-                    return Ok(new
-                    {
-                        Massage = "Store updated Successfully.",
-                        store = old_store
-                    });
-                }
-                return NotFound($"No stores found with this id.");
+                    return BadRequest(ModelState);
+
+                var stores = await _storeRepository.GetAllDeletedStoresAsync();
+                if (stores != null)
+                    return Ok(stores);
+
+                return NotFound("No deleted stores found.");
+
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while fetching the stores: {ex.Message}");
             }
         }
 
-       
 
 
 
-        [HttpDelete]
-        public IActionResult DeleteStoreByID(int DeleteStoreId, int alternativeStoreId)
+
+        [Authorize(Roles = "User")]
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetStoreById(int id)
         {
             try
             {
-                var store = appDbContext.Stores.FirstOrDefault(p => p.StoreId == DeleteStoreId && p.IsExist);
-                var employees = appDbContext.Employees.Where(e => e.StoreId == DeleteStoreId && e.IsActive).ToList();
-                var productlist = appDbContext.ProductStores.Where(e => e.StoreId == DeleteStoreId).ToList();
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-                if (store != null && employees != null && productlist != null)
-                {
-                    foreach (var employee in employees)
-                    {
-                        employee.IsActive = false;
-                    }
-                    foreach (var PS in productlist)
-                    {
-                        var product = appDbContext.ProductStores.FirstOrDefault
-                                        (ps => ps.StoreId == alternativeStoreId && ps.ProductId == PS.ProductId);
-                        if (product != null)
-                        {
-                            product.Quanttity += PS.Quanttity;
-                        }
-                        else
-                        {
-                            var newProStore = new ProductStore
-                            {
-                                StoreId = alternativeStoreId,
-                                ProductId = PS.ProductId,
-                                Quanttity = PS.Quanttity,
-                            };
-                            appDbContext.ProductStores.Add(newProStore);
-                        }
+                var store = await _storeRepository.GetStoreByIdAsync(id);
+                if (store != null)
+                    return Ok(store);
 
-                        appDbContext.Remove(PS);
-                    }
-                    store.IsExist = false;
-                    appDbContext.SaveChanges();
-                    return Ok("Store deleted successfully.");
-                }
-                return NotFound($"No srores found with this id.");
+                return NotFound($"No store found with ID {id}.");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while fetching the store: {ex.Message}");
             }
         }
 
+
+
+
+
+        [Authorize(Roles = "User")]
+        [HttpGet("Get Store By Name")]
+        public async Task<IActionResult> GetStoreByName(string name)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var store = await _storeRepository.GetStoreByNameAsync(name);
+                if (store != null)
+                    return Ok(store);
+
+                return NotFound($"No store found with name {name}.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while fetching the store: {ex.Message}");
+            }
+        }
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("Add Product To Store")]
+        public async Task<IActionResult> AddProductToStore(int id, AddProductToStoreDto addProductToStore)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var result = await _storeRepository.AddProductToStoreAsync(id, addProductToStore);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while adding the product to the store: {ex.Message}");
+            }
+        }
+
+
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{DeleteStoreId}")]
+        public async Task<IActionResult> DeleteStore(int DeleteStoreId, int alternativeStoreId)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                await _storeRepository.DeleteStoreAsync(DeleteStoreId, alternativeStoreId);
+                return Ok("Store deleted successfully.");
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while deleting the store: {ex.Message}");
+            }
+        }
 
 
     }

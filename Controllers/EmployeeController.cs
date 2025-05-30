@@ -1,6 +1,7 @@
 ﻿using bike_store_2.Data;
 using bike_store_2.DTO;
 using bike_store_2.Entities;
+using bike_store_2.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,322 +13,169 @@ namespace bike_store_2.Controllers
     [ApiController]
     [Authorize]
     public class EmployeeController : ControllerBase
-    {
+    {       
 
-        private readonly AppDbContext appDbContext;
-
-        public EmployeeController(AppDbContext appDbContext)
+        private readonly IEmployeeRepository _employeeRepository;
+        public EmployeeController(IEmployeeRepository employeeRepository)
         {
-            this.appDbContext = appDbContext;
+            _employeeRepository = employeeRepository;
         }
 
-
-
-
-        // create new employee
+        [Authorize(Roles = "Admin")]
         [HttpPost]
-        public IActionResult CreateEmployee([FromBody] Employee employee)
-        {           
+        public async Task<IActionResult> CreateEmployee([FromForm]CreateEmployeeDTO employeeDTO)
+        {
             try
             {
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
-                var CheckStoreExsist = appDbContext.Stores.FirstOrDefault(s => s.StoreId == employee.StoreId && s.IsExist);
-                if (CheckStoreExsist != null)
+                var employee = await _employeeRepository.CreateEmployeeAsync(employeeDTO);
+                return Ok(new
                 {
-                    appDbContext.Employees.Add(employee);                   
-                    appDbContext.SaveChanges();
-                    return Ok(new
-                    {
-                        Massage = "Employee added Successfully.",
-                        employee = employee
-                    });
-                }  
-               return BadRequest("Check if the store is exist or not.");
-            }
-            catch
-            {
-                return StatusCode(500, "An error occurred while creating the employee.");
-            }
-        }
-
-
-
-        // return data
-        [HttpGet]
-        [Route("All Employees")]
-        public IActionResult GetAllEmployees()
-        {
-            try
-            {
-                var employee = appDbContext.Employees.Where(e => e.IsActive).ToList();
-                //var employee = appDbContext.Employees.ToList();
-                if (employee == null || !employee.Any(e => e.IsActive))
-                {
-                    return NotFound("No employees found.");
-                }
-                return Ok(employee);
+                    Message = "Employee added successfully.",
+                    employee = employee
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"An error occurred while fetching the employees: {ex.Message}");
-            }
-
-        }
-
-
-
-
-
-        [HttpGet]
-        [Route("All Deleted Employees")]
-        public IActionResult GetAllDeletedEmployees()
-        {
-            try
-            {
-                var employee = appDbContext.Employees.Where(e => e.IsActive == false).ToList();
-                //var employee = appDbContext.Employees.ToList();
-                if (employee == null || !employee.Any(e => e.IsActive == false))
-                {
-                    return NotFound("No employees found.");
-                }
-                return Ok(employee);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An error occurred while fetching the employees: {ex.Message}");
-            }
-
-        }
-
-
-
-        // return data by id
-        [HttpGet("Get Employee Information/{id:int}")]
-        public IActionResult GetEmployeeByID([FromRoute] int id)
-        {
-            try
-            {
-                var employee = appDbContext.Employees
-                    .Include(s => s.Store)
-                    .Include(o => o.Orders)
-                    .FirstOrDefault(p => p.EmployeeId == id && p.IsActive);
-                if (employee != null)
-                {
-                    return Ok(employee);
-                }
-                else
-                {
-                    return NotFound($"No employees found with this id.");
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while creating the employee: {ex.Message}");
             }
         }
 
 
 
-
-
-
-
-        [HttpGet("Get Order Details maked by employee Id")]
-        public IActionResult GetEmployeeOrderDetails(int id)
-        {
-            try
-            {
-                var employee = appDbContext.Employees
-                    .Include(s => s.Store)
-                    .Include(o => o.Orders)
-                    .FirstOrDefault(p => p.EmployeeId == id && p.IsActive);
-                if (employee != null)
-                {
-                    var orderdetails = employee.Orders
-                        .Where(o => o.IsExist && o.EmployeeId == id)
-                        .Select( o => new EmployeeOrderShortDto
-                        {
-                            OrderId = o.OrderId,
-                            OrderDate = o.OrderDate,
-                            ShippedDate = o.ShippedDate,
-                            TotalAmount = o.TotalAmount,    
-                        }).ToList();
-
-                    if(!employee.Orders.Any(o => o.IsExist))
-                    {
-                        return Ok(new
-                        {
-                            EmployeeName = employee.EmployeeName,
-                            massage = "This employee does not make any orders."
-                        });
-                    }
-
-                    var employeeDto = new EmployeeMakedOrdersDto
-                    {
-                        EmployeeId = employee.EmployeeId,
-                        EmployeeName = employee.EmployeeName,
-                        employeeOrderShortDtos = orderdetails
-                    };
-                    
-                    return Ok(employeeDto);               
-                }                
-                return NotFound($"No employees found with this id.");                
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-
-
-
-
-        [HttpGet("{name}")]
-        public IActionResult GetEmployeeByName([FromRoute] string name)
-        {
-            try
-            {
-                var employee = appDbContext.Employees
-                    .Include(s => s.Store)
-                    .Include(o => o.Orders)
-                    .FirstOrDefault(p => p.EmployeeName.ToLower() == name.ToLower() && p.IsActive);
-                if (employee != null)
-                {
-                    return Ok(employee);
-                }
-                else
-                {
-                    return NotFound($"No employees found with this name.");
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-
-
-
-
-        [HttpGet("Get Order Details maked by employee/{name}")]
-        public IActionResult GetEmployeeOrderDetails(string name)
-        {
-            try
-            {
-                var employee = appDbContext.Employees
-                    .Include(s => s.Store)
-                    .Include(o => o.Orders)
-                    .FirstOrDefault(p => p.EmployeeName.ToLower() == name.ToLower() && p.IsActive);
-                if (employee != null)
-                {
-                    var orderdetails = employee.Orders
-                        .Where(o => o.IsExist)
-                        .Select(o => new EmployeeOrderShortDto
-                        {
-                            OrderId = o.OrderId,
-                            OrderDate = o.OrderDate,
-                            ShippedDate = o.ShippedDate,
-                            TotalAmount = o.TotalAmount,
-                        }).ToList();
-
-                    if (!employee.Orders.Any(o => o.IsExist))
-                    {
-                        return Ok(new
-                        {
-                            EmployeeName = employee.EmployeeName,
-                            massage = "This employee does not make any orders."
-                        });
-                    }
-
-                    var employeeDto = new EmployeeMakedOrdersDto
-                    {
-                        EmployeeId = employee.EmployeeId,
-                        EmployeeName = employee.EmployeeName,
-                        employeeOrderShortDtos = orderdetails
-                    };
-
-                    return Ok(employeeDto);
-                }
-                return NotFound($"No employees found with this id.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-
-
-
-        // update data
-        [HttpPut("{id:int}")]
-        public IActionResult UpdataEmployee([FromRoute] int id, [FromBody] Employee employee)
+        [Authorize(Roles = "Admin")]
+        [HttpPut]
+        [Route("{id:int}")]
+        public async Task<IActionResult> UpdateEmployee(int employeeId, [FromForm]UpdateEmployeeDTO updateDTO)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest("Invalid data provided.");
 
-                var CheckStoreExsist = appDbContext.Stores.FirstOrDefault(s => s.StoreId == employee.StoreId && s.IsExist);
-                
-                if (CheckStoreExsist == null)
-                    return BadRequest("Check if the store is exist or not.");
-
-                var old_employee = appDbContext.Employees.FirstOrDefault(p => p.EmployeeId == id);
-                if (old_employee != null)
+                var employee = await _employeeRepository.UpdateEmployeeAsync(employeeId, updateDTO);
+                return Ok(new
                 {
-                    old_employee.EmployeeName = employee.EmployeeName;
-                    old_employee.EmployeeEmail = employee.EmployeeEmail;
-                    old_employee.EmployeePhone = employee.EmployeePhone;
-                    old_employee.EmployeeSalary = employee.EmployeeSalary;
-                    old_employee.StoreId = employee.StoreId;
-                    old_employee.IsActive = employee.IsActive;
-                    appDbContext.SaveChanges();
-                    return Ok(new
-                    {
-                        Massage = "Employee updated Successfully.",
-                        employee = old_employee
-                    });
-                }
-                return NotFound($"No employees found with this id.");
+                    Message = "Employee updated successfully.",
+                    employee = employee
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while updating the employee: {ex.Message}");
             }
         }
 
 
 
-        // Delete
-        [HttpDelete("{id:int}")]
-        public IActionResult DeleteEmployee(int id)
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        [Route("All Active Employees")]
+        public async Task<IActionResult> GetAllExistingEmployees()
         {
             try
             {
-                var employee = appDbContext.Employees.FirstOrDefault(p => p.EmployeeId == id && p.IsActive);
-                if (employee != null)
-                {
-                    employee.IsActive = false;
-                    //appDbContext.Employees.Remove(employee);
-                    appDbContext.SaveChanges();
-                    return Ok("Employee deleted successfully.");
-                }
-                return NotFound($"No employees found with this id.");
+                var employees = await _employeeRepository.GetAllActiveEmployeesAsync();
+                if (employees == null || !employees.Any())                
+                    return NotFound("No employees found.");
+                
+                return Ok(employees);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, $"An error occurred while fetching the employees: {ex.Message}");
             }
         }
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        [Route("All Deleted Employees")]
+        public async Task<IActionResult> GetAllDeletedEmployees()
+        {
+            try
+            {
+                var employees = await _employeeRepository.GetAllDeletingEmployeesAsync();
+                if (employees == null || !employees.Any())
+                    return NotFound("No employees found.");
+
+                return Ok(employees);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while fetching the employees: {ex.Message}");
+            }
+        }
+
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetEmployeeByID(int employeeId)
+        {
+            try
+            {
+                var employee = await _employeeRepository.GetEmployeeByIdAsync(employeeId);
+                if (employee != null)                
+                    return Ok(employee);
+                
+                return NotFound($"No employees found with this id.");               
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while fetching the employee: {ex.Message}");
+            }
+        }
+
+
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{name}")]
+        public async Task<IActionResult> GetEmployeeByName(string employeeName)
+        {
+            try
+            {
+                var employee = await _employeeRepository.GetEmployeeByNameAsync(employeeName);
+                if (employee != null)
+                    return Ok(employee);
+
+                return NotFound($"No employees found with this name.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while fetching the employee: {ex.Message}");
+            }
+        }
+
+
+
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpDelete]
+        [Route("{id:int}")]
+        public async Task<IActionResult> DeleteEmployee(int employeeId)
+        {
+            try
+            {
+                await _employeeRepository.DeleteEmployeeAsync(employeeId);
+                return Ok("Employee deleted successfully.");
+            }         
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while deleting the employee: {ex.Message}");
+            }
+        }
+
 
     }
 }
